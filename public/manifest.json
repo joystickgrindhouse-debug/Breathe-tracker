@@ -1,0 +1,12 @@
+{
+  "short_name": "WellnessTracker",
+  "name": "Breathing & Wellness Tracker",
+  "icons": [
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512" }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f0f8ff",
+  "theme_color": "#1e90ff"
+}
