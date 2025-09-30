@@ -1,104 +1,100 @@
-import React, { useState, useEffect } from "react";
-import { Line } from "react-chartjs-2";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import React, { useState, useEffect } from 'react';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+} from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export default function App() {
-  const [logs, setLogs] = useState(() => {
-    try {
-      const saved = localStorage.getItem("breathingLogs");
-      return saved ? JSON.parse(saved) : [];
-    } catch (error) {
-      console.error("Failed to load logs from localStorage:", error);
-      return [];
-    }
-  });
 
-  const [breathing, setBreathing] = useState("");
-  const [oxygen, setOxygen] = useState("");
-  const [heartRate, setHeartRate] = useState("");
-  const [notes, setNotes] = useState("");
-  const [meals, setMeals] = useState({ breakfast: "", lunch: "", dinner: "", snacks: "" });
-  const [activities, setActivities] = useState("");
+  const [logs, setLogs] = useState(
+    () => JSON.parse(localStorage.getItem('breathingLogs')) || []
+  );
+
+  const [mealTime, setMealTime] = useState('');
+  const [breathing, setBreathing] = useState('');
+  const [oxygen, setOxygen] = useState('');
+  const [heartRate, setHeartRate] = useState('');
+  const [notes, setNotes] = useState('');
+  const [meals, setMeals] = useState({
+    breakfast: '',
+    lunch: '',
+    dinner: '',
+    snacks: ''
+  });
+  const [activities, setActivities] = useState('');
 
   useEffect(() => {
-    try {
-      localStorage.setItem("breathingLogs", JSON.stringify(logs));
-    } catch (error) {
-      console.error("Failed to save logs to localStorage:", error);
-      alert("Unable to save data. Storage may be full.");
-    }
+    localStorage.setItem('breathingLogs', JSON.stringify(logs));
   }, [logs]);
 
-  // Removed annoying alerts that fire on every page load
-
   const handleSave = () => {
-    if (!breathing) {
-      alert("Please select your breathing status before saving.");
-      return;
-    }
-    
-    const oxygenNum = parseFloat(oxygen);
-    const heartRateNum = parseFloat(heartRate);
-    
-    if (oxygen && (isNaN(oxygenNum) || oxygenNum < 80 || oxygenNum > 100)) {
-      alert("Oxygen level must be between 80 and 100.");
-      return;
-    }
-    
-    if (heartRate && (isNaN(heartRateNum) || heartRateNum < 30 || heartRateNum > 200)) {
-      alert("Heart rate must be between 30 and 200 BPM.");
-      return;
-    }
-    
     const today = new Date().toLocaleDateString();
     const newLog = {
       date: today,
+      mealTime,
       breathing,
-      oxygen: oxygen || "",
-      heartRate: heartRate || "",
+      oxygen,
+      heartRate,
       notes,
       meals,
       activities
     };
+
     setLogs([...logs, newLog]);
-    setBreathing("");
-    setOxygen("");
-    setHeartRate("");
-    setNotes("");
-    setMeals({ breakfast: "", lunch: "", dinner: "", snacks: "" });
-    setActivities("");
+
+    // Reset fields
+    setMealTime('');
+    setBreathing('');
+    setOxygen('');
+    setHeartRate('');
+    setNotes('');
+    setMeals({ breakfast: '', lunch: '', dinner: '', snacks: '' });
+    setActivities('');
   };
 
-  const breathingColors = { better: 'green', same: 'gray', worse: 'red' };
+  const breathingColors = {
+    better: 'green',
+    same: 'gray',
+    worse: 'red'
+  };
 
   const chartData = {
-    labels: logs.map(log => log.date),
+    labels: logs.map(log => `${log.date} ${log.mealTime}`),
     datasets: [
       {
         label: 'Oxygen Level (%)',
-        data: logs.map(log => {
-          const val = parseFloat(log.oxygen);
-          return isNaN(val) ? null : val;
-        }),
+        data: logs.map(log => Number(log.oxygen)),
         borderColor: 'blue',
         backgroundColor: 'lightblue',
         tension: 0.3,
-        yAxisID: 'y1',
-        spanGaps: true
+        yAxisID: 'y1'
       },
       {
         label: 'Heart Rate (BPM)',
-        data: logs.map(log => {
-          const val = parseFloat(log.heartRate);
-          return isNaN(val) ? null : val;
-        }),
+        data: logs.map(log => Number(log.heartRate)),
         borderColor: 'red',
         backgroundColor: 'pink',
         tension: 0.3,
-        yAxisID: 'y1',
-        spanGaps: true
+        yAxisID: 'y1'
       },
       {
         label: 'Breathing Status',
@@ -138,73 +134,328 @@ export default function App() {
     }
   };
 
-  return (
-    <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto', fontFamily: 'Arial, sans-serif', fontSize: '18px', backgroundColor: '#f0f8ff', minHeight: '100vh' }}>
-      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '20px', textAlign: 'center' }}>Breathing & Wellness Tracker</h1>
+  const groupedLogs = logs.reduce((acc, log) => {
+    if (!acc[log.date]) acc[log.date] = [];
+    acc[log.date].push(log);
+    return acc;
+  }, {});
 
+  // Landing screen
+  if (!mealTime) {
+    return (
+      <div
+        style={{
+          padding: '20px',
+          maxWidth: '600px',
+          margin: '0 auto',
+          fontFamily: 'Arial, sans-serif',
+          fontSize: '18px',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: '#f0f8ff'
+        }}
+      >
+        <h1
+          style={{
+            fontSize: '28px',
+            fontWeight: 'bold',
+            marginBottom: '20px',
+            textAlign: 'center'
+          }}
+        >
+          Select Meal Time
+        </h1>
+
+        {['Breakfast', 'Lunch', 'Dinner'].map(meal => (
+          <button
+            key={meal}
+            onClick={() => setMealTime(meal)}
+            style={{
+              width: '250px',
+              padding: '25px',
+              margin: '10px',
+              fontSize: '22px',
+              borderRadius: '15px',
+              border: 'none',
+              backgroundColor: '#1e90ff',
+              color: 'white',
+              fontWeight: 'bold'
+            }}
+          >
+            {meal}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div
+      style={{
+        padding: '20px',
+        maxWidth: '600px',
+        margin: '0 auto',
+        fontFamily: 'Arial, sans-serif',
+        fontSize: '18px',
+        backgroundColor: '#f0f8ff',
+        minHeight: '100vh'
+      }}
+    >
+      <h1
+        style={{
+          fontSize: '28px',
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          textAlign: 'center'
+        }}
+      >
+        {mealTime} Log
+      </h1>
+
+      {/* Breathing */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>How is your breathing today? *</label>
+        <label
+          style={{
+            fontWeight: 'bold',
+            display: 'block',
+            marginBottom: '5px'
+          }}
+        >
+          How is your breathing today?
+        </label>
+
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           {['better', 'same', 'worse'].map(option => (
-            <button key={option} onClick={() => setBreathing(option)} style={{ flex: 1, margin: '0 5px', padding: '15px', fontSize: '18px', backgroundColor: breathing === option ? breathingColors[option] : '#ddd', color: 'black', border: 'none', borderRadius: '10px' }}>{option.charAt(0).toUpperCase() + option.slice(1)}</button>
+            <button
+              key={option}
+              onClick={() => setBreathing(option)}
+              style={{
+                flex: 1,
+                margin: '0 5px',
+                padding: '15px',
+                fontSize: '18px',
+                backgroundColor:
+                  breathing === option ? breathingColors[option] : '#ddd',
+                color: 'black',
+                border: 'none',
+                borderRadius: '10px'
+              }}
+            >
+              {option.charAt(0).toUpperCase() + option.slice(1)}
+            </button>
           ))}
         </div>
       </div>
 
+      {/* Oxygen */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Oxygen Level (%)</label>
-        <input type="number" min="80" max="100" value={oxygen} onChange={e => setOxygen(e.target.value)} style={{ width: '100%', padding: '10px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }} placeholder="Enter oxygen level" />
+        <label
+          style={{
+            fontWeight: 'bold',
+            display: 'block',
+            marginBottom: '5px'
+          }}
+        >
+          Oxygen Level (%)
+        </label>
+        <input
+          type="number"
+          min="80"
+          max="100"
+          value={oxygen}
+          onChange={e => setOxygen(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            fontSize: '18px',
+            borderRadius: '10px',
+            border: '1px solid #ccc'
+          }}
+          placeholder="Enter oxygen level"
+        />
       </div>
 
+      {/* Heart Rate */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Heart Rate (BPM)</label>
-        <input type="number" min="30" max="200" value={heartRate} onChange={e => setHeartRate(e.target.value)} style={{ width: '100%', padding: '10px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }} placeholder="Enter heart rate" />
+        <label
+          style={{
+            fontWeight: 'bold',
+            display: 'block',
+            marginBottom: '5px'
+          }}
+        >
+          Heart Rate (BPM)
+        </label>
+        <input
+          type="number"
+          min="30"
+          max="200"
+          value={heartRate}
+          onChange={e => setHeartRate(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            fontSize: '18px',
+            borderRadius: '10px',
+            border: '1px solid #ccc'
+          }}
+          placeholder="Enter heart rate"
+        />
       </div>
 
+      {/* Notes */}
       <div style={{ marginBottom: '20px' }}>
-        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Notes</label>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} style={{ width: '100%', padding: '10px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }} placeholder="Any observations?" />
+        <label
+          style={{
+            fontWeight: 'bold',
+            display: 'block',
+            marginBottom: '5px'
+          }}
+        >
+          Notes
+        </label>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            fontSize: '18px',
+            borderRadius: '10px',
+            border: '1px solid #ccc'
+          }}
+          placeholder="Any observations?"
+        />
       </div>
 
-      {Object.keys(meals).map(meal => (
-        <div key={meal} style={{ marginBottom: '15px' }}>
-          <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px', textTransform: 'capitalize' }}>{meal}</label>
-          <input type="text" value={meals[meal]} onChange={e => setMeals({ ...meals, [meal]: e.target.value })} style={{ width: '100%', padding: '10px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }} placeholder={`Enter ${meal}`} />
-        </div>
-      ))}
-
-      <div style={{ marginBottom: '20px' }}>
-        <label style={{ fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Activities</label>
-        <input type="text" value={activities} onChange={e => setActivities(e.target.value)} style={{ width: '100%', padding: '10px', fontSize: '18px', borderRadius: '10px', border: '1px solid #ccc' }} placeholder="Enter activities today" />
+      {/* Selected Meal */}
+      <div style={{ marginBottom: '15px' }}>
+        <label
+          style={{
+            fontWeight: 'bold',
+            display: 'block',
+            marginBottom: '5px',
+            textTransform: 'capitalize'
+          }}
+        >
+          {mealTime}
+        </label>
+        <input
+          type="text"
+          value={meals[mealTime.toLowerCase()]}
+          onChange={e =>
+            setMeals({ ...meals, [mealTime.toLowerCase()]: e.target.value })
+          }
+          style={{
+            width: '100%',
+            padding: '10px',
+            fontSize: '18px',
+            borderRadius: '10px',
+            border: '1px solid #ccc'
+          }}
+          placeholder={`Enter ${mealTime}`}
+        />
       </div>
 
-      <button onClick={handleSave} style={{ width: '100%', padding: '15px', fontSize: '20px', backgroundColor: '#1e90ff', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 'bold' }}>Save Entry</button>
+      {/* Activities */}
+      <div style={{ marginBottom: '20px' }}>
+        <label
+          style={{
+            fontWeight: 'bold',
+            display: 'block',
+            marginBottom: '5px'
+          }}
+        >
+          Activities
+        </label>
+        <input
+          type="text"
+          value={activities}
+          onChange={e => setActivities(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            fontSize: '18px',
+            borderRadius: '10px',
+            border: '1px solid #ccc'
+          }}
+          placeholder="Enter activities today"
+        />
+      </div>
 
+      {/* Save Button */}
+      <button
+        onClick={handleSave}
+        style={{
+          width: '100%',
+          padding: '15px',
+          fontSize: '20px',
+          backgroundColor: '#1e90ff',
+          color: 'white',
+          fontWeight: 'bold',
+          border: 'none',
+          borderRadius: '10px',
+          marginBottom: '20px'
+        }}
+      >
+        Save Entry
+      </button>
+
+      {/* Charts */}
       {logs.length > 0 && (
-        <div style={{ marginTop: '40px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px', textAlign: 'center' }}>Trends</h2>
+        <div>
+          <h2 style={{ fontWeight: 'bold', marginBottom: '10px' }}>Charts</h2>
           <Line data={chartData} options={chartOptions} />
         </div>
       )}
 
-      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginTop: '40px', marginBottom: '15px', textAlign: 'center' }}>History</h2>
-      {logs.length === 0 && <p>No logs yet.</p>}
-      {logs.map((log, i) => (
-        <div key={i} style={{ border: '1px solid #ccc', borderRadius: '10px', padding: '15px', marginBottom: '15px', backgroundColor: '#fff' }}>
-          <p><strong>{log.date}</strong></p>
-          <p>Breathing: <span style={{ color: breathingColors[log.breathing] }}>{log.breathing}</span></p>
-          {log.oxygen && <p>Oxygen Level: {log.oxygen}%</p>}
-          {log.heartRate && <p>Heart Rate: {log.heartRate} BPM</p>}
-          {log.notes && <p>Notes: {log.notes}</p>}
-          {log.meals.breakfast && <p>Breakfast: {log.meals.breakfast}</p>}
-          {log.meals.lunch && <p>Lunch: {log.meals.lunch}</p>}
-          {log.meals.dinner && <p>Dinner: {log.meals.dinner}</p>}
-          {log.meals.snacks && <p>Snacks: {log.meals.snacks}</p>}
-          {log.activities && <p>Activities: {log.activities}</p>}
+      {/* History */}
+      {Object.keys(groupedLogs).length > 0 && (
+        <div style={{ marginTop: '30px' }}>
+          <h2 style={{ fontWeight: 'bold', marginBottom: '10px' }}>History</h2>
+          {Object.keys(groupedLogs).map(date => (
+            <div
+              key={date}
+              style={{
+                marginBottom: '20px',
+                padding: '10px',
+                backgroundColor: '#e6f2ff',
+                borderRadius: '10px'
+              }}
+            >
+              <h3 style={{ fontWeight: 'bold' }}>{date}</h3>
+              {groupedLogs[date].map((log, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    marginBottom: '10px',
+                    padding: '10px',
+                    backgroundColor: '#fff',
+                    borderRadius: '10px'
+                  }}
+                >
+                  <strong>{log.mealTime}</strong>
+                  <br />
+                  Breathing: {log.breathing}
+                  <br />
+                  Oxygen: {log.oxygen}
+                  <br />
+                  Heart Rate: {log.heartRate}
+                  <br />
+                  Notes: {log.notes}
+                  <br />
+                  Activities: {log.activities}
+                  <br />
+                  Meal: {log.meals[log.mealTime.toLowerCase()]}
+                </div>
+              ))}
+            </div>
+          ))}
         </div>
-      ))}
+      )}
     </div>
-
   );
 }
-
