@@ -3,47 +3,229 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#1e90ff" />
-  <title>Breathing & Wellness Tracker</title>
+  <title>Wellness Tracker</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
-      background: #f0f8ff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      margin: 0;
+      padding: 20px;
+      background-color: #f0f8ff;
     }
     h1 {
       color: #1e90ff;
-      margin-bottom: 10px;
-    }
-    p {
-      font-size: 1.2rem;
-      color: #333;
       text-align: center;
-      max-width: 400px;
     }
-    button {
-      padding: 10px 20px;
-      font-size: 1rem;
-      background-color: #1e90ff;
-      color: #fff;
+    .buttons {
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .buttons button {
+      margin: 0 5px;
+      padding: 10px 15px;
+      cursor: pointer;
       border: none;
       border-radius: 5px;
-      cursor: pointer;
-      margin-top: 20px;
+      background-color: #1e90ff;
+      color: white;
     }
-    button:hover {
+    .buttons button:hover {
       background-color: #187bcd;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input, select, textarea {
+      display: block;
+      margin-top: 5px;
+      margin-bottom: 10px;
+      padding: 5px;
+      width: 250px;
+    }
+    button#saveBtn {
+      background-color: #32cd32;
+    }
+    button#saveBtn:hover {
+      background-color: #28a428;
+    }
+    #history {
+      margin-top: 20px;
+      border-top: 2px solid #1e90ff;
+      padding-top: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 5px;
+      text-align: center;
+    }
+    th {
+      background-color: #1e90ff;
+      color: white;
+    }
+    canvas {
+      max-width: 600px;
+      margin: 20px auto;
+      display: block;
     }
   </style>
 </head>
 <body>
-  <h1>Breathing & Wellness Tracker</h1>
-  <p>Welcome! Track your breathing exercises and wellness activities directly from this page.</p>
-  <button onclick="alert('Feature coming soon!')">Start Tracking</button>
+  <h1>Wellness Tracker</h1>
+
+  <div class="buttons">
+    <button onclick="setMealTime('breakfast')">Breakfast</button>
+    <button onclick="setMealTime('lunch')">Lunch</button>
+    <button onclick="setMealTime('dinner')">Dinner</button>
+  </div>
+
+  <div>
+    <label>Breathing:</label>
+    <select id="breathing">
+      <option value="">Select</option>
+      <option value="better">Better</option>
+      <option value="same">Same</option>
+      <option value="worse">Worse</option>
+    </select>
+
+    <label>Oxygen Level:</label>
+    <input type="number" id="oxygen" placeholder="e.g., 95">
+
+    <label>Heart Rate:</label>
+    <input type="number" id="heartRate" placeholder="e.g., 72">
+
+    <label>Notes:</label>
+    <textarea id="notes" placeholder="Optional notes..."></textarea>
+
+    <label>Activities:</label>
+    <textarea id="activities" placeholder="Optional activities..."></textarea>
+
+    <button id="saveBtn" onclick="saveLog()">Save Log</button>
+  </div>
+
+  <canvas id="chart"></canvas>
+
+  <div id="history">
+    <h2>History</h2>
+    <table id="historyTable">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Meal</th>
+          <th>Breathing</th>
+          <th>Oxygen</th>
+          <th>Heart Rate</th>
+          <th>Activities / Notes</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    let logs = JSON.parse(localStorage.getItem('breathingLogs')) || [];
+    let mealTime = '';
+
+    function setMealTime(time) {
+      mealTime = time;
+      renderChart();
+    }
+
+    function saveLog() {
+      const breathing = document.getElementById('breathing').value;
+      const oxygen = document.getElementById('oxygen').value;
+      const heartRate = document.getElementById('heartRate').value;
+      const notes = document.getElementById('notes').value;
+      const activities = document.getElementById('activities').value;
+
+      if (!mealTime) {
+        alert('Please select a meal first!');
+        return;
+      }
+
+      const newLog = {
+        date: new Date().toLocaleString(),
+        mealTime,
+        breathing,
+        oxygen: oxygen ? Number(oxygen) : null,
+        heartRate: heartRate ? Number(heartRate) : null,
+        notes,
+        activities
+      };
+
+      logs.push(newLog);
+      localStorage.setItem('breathingLogs', JSON.stringify(logs));
+
+      // Reset form
+      document.getElementById('breathing').value = '';
+      document.getElementById('oxygen').value = '';
+      document.getElementById('heartRate').value = '';
+      document.getElementById('notes').value = '';
+      document.getElementById('activities').value = '';
+
+      renderChart();
+      renderHistory();
+    }
+
+    function renderChart() {
+      const filteredLogs = logs.filter(log => log.mealTime === mealTime);
+      const data = {
+        labels: filteredLogs.map(log => log.date),
+        datasets: [
+          {
+            label: 'Oxygen Level (%)',
+            data: filteredLogs.map(log => log.oxygen),
+            borderColor: 'green',
+            backgroundColor: 'rgba(0,255,0,0.2)',
+          },
+          {
+            label: 'Heart Rate (bpm)',
+            data: filteredLogs.map(log => log.heartRate),
+            borderColor: 'red',
+            backgroundColor: 'rgba(255,0,0,0.2)',
+          }
+        ]
+      };
+
+      const ctx = document.getElementById('chart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type: 'line',
+        data,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            title: { display: true, text: `Logs for ${mealTime || 'all meals'}` }
+          }
+        }
+      });
+    }
+
+    function renderHistory() {
+      const tbody = document.querySelector('#historyTable tbody');
+      tbody.innerHTML = '';
+      logs.slice().reverse().forEach(log => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${log.date}</td>
+          <td>${log.mealTime}</td>
+          <td>${log.breathing}</td>
+          <td>${log.oxygen || ''}</td>
+          <td>${log.heartRate || ''}</td>
+          <td>${log.activities}${log.notes ? ' / ' + log.notes : ''}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Initial render
+    renderChart();
+    renderHistory();
+  </script>
 </body>
-  </html>
+      </html>
