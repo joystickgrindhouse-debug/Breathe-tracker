@@ -27,9 +27,13 @@
       border-radius: 5px;
       background-color: #1e90ff;
       color: white;
+      transition: background 0.3s;
     }
     .buttons button:hover {
       background-color: #187bcd;
+    }
+    .buttons button.active {
+      background-color: #32cd32;
     }
     label {
       display: block;
@@ -44,6 +48,12 @@
     }
     button#saveBtn {
       background-color: #32cd32;
+      width: 150px;
+      font-size: 1.2rem;
+      padding: 15px;
+      display: block;
+      margin-top: 15px;
+      border-radius: 8px;
     }
     button#saveBtn:hover {
       background-color: #28a428;
@@ -78,9 +88,9 @@
   <h1>Wellness Tracker</h1>
 
   <div class="buttons">
-    <button onclick="setMealTime('breakfast')">Breakfast</button>
-    <button onclick="setMealTime('lunch')">Lunch</button>
-    <button onclick="setMealTime('dinner')">Dinner</button>
+    <button id="breakfastBtn" onclick="setMealTime('breakfast')">Breakfast</button>
+    <button id="lunchBtn" onclick="setMealTime('lunch')">Lunch</button>
+    <button id="dinnerBtn" onclick="setMealTime('dinner')">Dinner</button>
   </div>
 
   <div>
@@ -132,7 +142,19 @@
 
     function setMealTime(time) {
       mealTime = time;
+      updateMealButtons();
       renderChart();
+    }
+
+    function updateMealButtons() {
+      ['breakfast', 'lunch', 'dinner'].forEach(meal => {
+        const btn = document.getElementById(meal + 'Btn');
+        if (meal === mealTime) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
     }
 
     function saveLog() {
@@ -172,6 +194,7 @@
     }
 
     function renderChart() {
+      if (!mealTime) return;
       const filteredLogs = logs.filter(log => log.mealTime === mealTime);
       const data = {
         labels: filteredLogs.map(log => log.date),
@@ -200,7 +223,7 @@
           responsive: true,
           plugins: {
             legend: { position: 'top' },
-            title: { display: true, text: `Logs for ${mealTime || 'all meals'}` }
+            title: { display: true, text: `Logs for ${mealTime}` }
           }
         }
       });
@@ -228,4 +251,4 @@
     renderHistory();
   </script>
 </body>
-      </html>
+                   </html>
